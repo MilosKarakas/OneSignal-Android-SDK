@@ -27,10 +27,12 @@
 
 package com.onesignal;
 
+import static com.onesignal.GenerateNotification.BUNDLE_KEY_ACTION_ID;
+import static com.onesignal.OSUtils.isStringNotEmpty;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -46,9 +48,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Set;
-
-import static com.onesignal.GenerateNotification.BUNDLE_KEY_ACTION_ID;
-import static com.onesignal.OSUtils.isStringNotEmpty;
 
 /** Processes the Bundle received from a push.
  * This class handles both processing bundles from a BroadcastReceiver or from a Service

@@ -27,6 +27,40 @@
 
 package com.test.onesignal;
 
+import static com.onesignal.OneSignalPackagePrivateHelper.FCMBroadcastReceiver_onReceived_withIntent;
+import static com.onesignal.OneSignalPackagePrivateHelper.FCMBroadcastReceiver_processBundle;
+import static com.onesignal.OneSignalPackagePrivateHelper.GenerateNotification.BUNDLE_KEY_ACTION_ID;
+import static com.onesignal.OneSignalPackagePrivateHelper.GenerateNotification.BUNDLE_KEY_ANDROID_NOTIFICATION_ID;
+import static com.onesignal.OneSignalPackagePrivateHelper.GenerateNotification.BUNDLE_KEY_ONESIGNAL_DATA;
+import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor.PUSH_MINIFIED_BUTTONS_LIST;
+import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor.PUSH_MINIFIED_BUTTON_ID;
+import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor.PUSH_MINIFIED_BUTTON_TEXT;
+import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor_ProcessFromFCMIntentService;
+import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor_ProcessFromFCMIntentService_NoWrap;
+import static com.onesignal.OneSignalPackagePrivateHelper.NotificationOpenedProcessor_processFromContext;
+import static com.onesignal.OneSignalPackagePrivateHelper.NotificationSummaryManager_updateSummaryNotificationAfterChildRemoved;
+import static com.onesignal.OneSignalPackagePrivateHelper.OneSignal_getAccentColor;
+import static com.onesignal.OneSignalPackagePrivateHelper.OneSignal_setTime;
+import static com.onesignal.OneSignalPackagePrivateHelper.OneSignal_setupNotificationServiceExtension;
+import static com.onesignal.OneSignalPackagePrivateHelper.createInternalPayloadBundle;
+import static com.onesignal.ShadowOneSignalRestClient.setRemoteParamsGetHtmlResponse;
+import static com.onesignal.ShadowRoboNotificationManager.getNotificationsInGroup;
+import static com.test.onesignal.RestClientAsserts.assertReportReceivedAtIndex;
+import static com.test.onesignal.RestClientAsserts.assertRestCalls;
+import static com.test.onesignal.TestHelpers.fastColdRestartApp;
+import static com.test.onesignal.TestHelpers.pauseActivity;
+import static com.test.onesignal.TestHelpers.startRemoteNotificationReceivedHandlerService;
+import static com.test.onesignal.TestHelpers.threadAndTaskWait;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
+import static org.robolectric.Shadows.shadowOf;
+
 import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -75,7 +109,6 @@ import com.onesignal.ShadowOSViewUtils;
 import com.onesignal.ShadowOSWebView;
 import com.onesignal.ShadowOneSignal;
 import com.onesignal.ShadowOneSignalRestClient;
-import com.onesignal.ShadowReceiveReceiptController;
 import com.onesignal.ShadowResources;
 import com.onesignal.ShadowRoboNotificationManager;
 import com.onesignal.ShadowRoboNotificationManager.PostedNotification;
@@ -108,41 +141,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import static com.onesignal.OneSignalPackagePrivateHelper.FCMBroadcastReceiver_onReceived_withIntent;
-import static com.onesignal.OneSignalPackagePrivateHelper.FCMBroadcastReceiver_processBundle;
-import static com.onesignal.OneSignalPackagePrivateHelper.GenerateNotification.BUNDLE_KEY_ACTION_ID;
-import static com.onesignal.OneSignalPackagePrivateHelper.GenerateNotification.BUNDLE_KEY_ANDROID_NOTIFICATION_ID;
-import static com.onesignal.OneSignalPackagePrivateHelper.GenerateNotification.BUNDLE_KEY_ONESIGNAL_DATA;
-import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor.PUSH_MINIFIED_BUTTONS_LIST;
-import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor.PUSH_MINIFIED_BUTTON_ID;
-import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor.PUSH_MINIFIED_BUTTON_TEXT;
-import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor_ProcessFromFCMIntentService;
-import static com.onesignal.OneSignalPackagePrivateHelper.NotificationBundleProcessor_ProcessFromFCMIntentService_NoWrap;
-import static com.onesignal.OneSignalPackagePrivateHelper.NotificationOpenedProcessor_processFromContext;
-import static com.onesignal.OneSignalPackagePrivateHelper.NotificationSummaryManager_updateSummaryNotificationAfterChildRemoved;
-import static com.onesignal.OneSignalPackagePrivateHelper.OneSignal_getAccentColor;
-import static com.onesignal.OneSignalPackagePrivateHelper.OneSignal_setDelayTaskController;
-import static com.onesignal.OneSignalPackagePrivateHelper.OneSignal_setTime;
-import static com.onesignal.OneSignalPackagePrivateHelper.OneSignal_setupNotificationServiceExtension;
-import static com.onesignal.OneSignalPackagePrivateHelper.createInternalPayloadBundle;
-import static com.onesignal.ShadowOneSignalRestClient.setRemoteParamsGetHtmlResponse;
-import static com.onesignal.ShadowRoboNotificationManager.getNotificationsInGroup;
-import static com.test.onesignal.RestClientAsserts.assertReportReceivedAtIndex;
-import static com.test.onesignal.RestClientAsserts.assertRestCalls;
-import static com.test.onesignal.TestHelpers.fastColdRestartApp;
-import static com.test.onesignal.TestHelpers.pauseActivity;
-import static com.test.onesignal.TestHelpers.startRemoteNotificationReceivedHandlerService;
-import static com.test.onesignal.TestHelpers.threadAndTaskWait;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThat;
-import static org.robolectric.Shadows.shadowOf;
 
 @Config(packageName = "com.onesignal.example",
         shadows = {
@@ -763,7 +761,8 @@ public class GenerateNotificationRunner {
       assertEquals(1, ShadowBadgeCountUpdater.lastCount);
    }
 
-   @Test public void shouldNotRestoreNotificationsIfPermissionIsDisabled() throws Exception {
+   @Test
+   public void shouldNotRestoreNotificationsIfPermissionIsDisabled() throws Exception {
       NotificationBundleProcessor_ProcessFromFCMIntentService(blankActivity, getBaseNotifBundle());
 
       ShadowNotificationManagerCompat.enabled = false;
@@ -1242,6 +1241,27 @@ public class GenerateNotificationRunner {
       HashMap<String, Object> notification = TestHelpers.getAllNotificationRecords(dbHelper).get(0);
       long expireTime = (Long)notification.get(NotificationTable.COLUMN_NAME_EXPIRE_TIME);
       assertEquals(sentTime + (ttl * 1_000), expireTime * 1_000);
+   }
+
+   @Test
+   @Config (sdk = 23, shadows = { ShadowGenerateNotification.class })
+   public void shouldShowNotificationPastTTL() throws Exception {
+      long sentTime = 1_635_971_895_940L;
+      long ttl = 60L;
+
+      time.setMockedTime(sentTime);
+
+      Bundle bundle = getBaseNotifBundle();
+      bundle.putLong("google.sent_time", sentTime);
+      bundle.putLong("google.ttl", ttl);
+
+      // Go forward just past the TTL of the notification
+      time.advanceSystemTimeBy(ttl + 1);
+
+      NotificationBundleProcessor_ProcessFromFCMIntentService(blankActivity, bundle);
+      threadAndTaskWait();
+
+      assertEquals(0, ShadowBadgeCountUpdater.lastCount);
    }
 
    @Test

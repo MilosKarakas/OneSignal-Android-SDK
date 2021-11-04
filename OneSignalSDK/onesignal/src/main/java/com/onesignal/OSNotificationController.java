@@ -41,6 +41,8 @@ public class OSNotificationController {
 
    // The extension service app AndroidManifest.xml meta data tag key name
    private static final String EXTENSION_SERVICE_META_DATA_TAG_NAME = "com.onesignal.NotificationServiceExtension";
+   private static final String GOOGLE_SENT_TIME_KEY = "google.sent_time";
+   private static final String GOOGLE_TTL_KEY = "google.ttl";
 
    private final CallbackToFutureAdapter.Completer<ListenableWorker.Result> callbackCompleter;
    private final OSNotificationGenerationJob notificationJob;
@@ -88,13 +90,14 @@ public class OSNotificationController {
    void processNotification(OSNotification originalNotification, @Nullable OSNotification notification) {
       if (notification != null) {
          boolean display = isStringNotEmpty(notification.getBody());
-         if (!display) {
-            // Save as processed to prevent possible duplicate calls from canonical ids
-            notDisplayNotificationLogic(originalNotification);
-         } else {
+         boolean ttl = isNotificationInsideTTL();
+         if (display && ttl) {
             // Set modified notification
             notificationJob.setNotification(notification);
             NotificationBundleProcessor.processJobForDisplay(this, fromBackgroundLogic);
+         } else {
+            // Save as processed to prevent possible duplicate calls from canonical ids
+            notDisplayNotificationLogic(originalNotification);
          }
          // Delay to prevent CPU spikes
          // Normally more than one notification is restored at a time
@@ -118,6 +121,15 @@ public class OSNotificationController {
          NotificationBundleProcessor.processNotification(notificationJob, true, false);
          OneSignal.handleNotificationReceived(notificationJob);
       }
+   }
+
+   public boolean isNotificationInsideTTL() {
+      JSONObject jsonPayload = notificationJob.getJsonPayload();
+      long currentTime = OneSignal.getTime().getCurrentThreadTimeMillis() / 1_000L;
+      long sentTime = jsonPayload.optLong(GOOGLE_SENT_TIME_KEY, currentTime);
+      int ttl = jsonPayload.optInt(GOOGLE_TTL_KEY, OSNotificationRestoreWorkManager.DEFAULT_TTL_IF_NOT_IN_PAYLOAD);
+
+      return sentTime + ttl < currentTime;
    }
 
    public OSNotificationGenerationJob getNotificationJob() {
