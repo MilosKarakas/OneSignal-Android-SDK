@@ -85,25 +85,7 @@ public class OSNotificationController {
     * @param notification the notification sent by the user, might be modified
     * @see OSNotificationReceivedEvent#complete(OSNotification)
     */
-   void processNotification(OSNotification originalNotification, @Nullable OSNotification notification) {
-      if (notification != null) {
-         boolean display = isStringNotEmpty(notification.getBody());
-         if (!display) {
-            // Save as processed to prevent possible duplicate calls from canonical ids
-            notDisplayNotificationLogic(originalNotification);
-         } else {
-            // Set modified notification
-            notificationJob.setNotification(notification);
-            NotificationBundleProcessor.processJobForDisplay(this, fromBackgroundLogic);
-         }
-         // Delay to prevent CPU spikes
-         // Normally more than one notification is restored at a time
-         if (restoring)
-            OSUtils.sleep(100);
-      } else {
-         notDisplayNotificationLogic(originalNotification);
-      }
-   }
+   void processNotification(OSNotification originalNotification, @Nullable OSNotification notification) { }
 
    private void notDisplayNotificationLogic(OSNotification originalNotification) {
       notificationJob.setNotification(originalNotification);
