@@ -409,50 +409,9 @@ class OSInAppMessageController extends OSBackgroundManager implements OSDynamicT
         }
     }
 
-    private void showMultiplePrompts(final OSInAppMessageInternal inAppMessage, final List<OSInAppMessagePrompt> prompts) {
-        for (OSInAppMessagePrompt prompt : prompts) {
-            // Don't show prompt twice
-            if (!prompt.hasPrompted()) {
-                currentPrompt = prompt;
-                break;
-            }
-        }
+    private void showMultiplePrompts(final OSInAppMessageInternal inAppMessage, final List<OSInAppMessagePrompt> prompts) { }
 
-        if (currentPrompt != null) {
-            logger.debug("IAM prompt to handle: " + currentPrompt.toString());
-            currentPrompt.setPrompted(true);
-            currentPrompt.handlePrompt(new OneSignal.OSPromptActionCompletionCallback() {
-                @Override
-                public void onCompleted(OneSignal.PromptActionResult result) {
-                    currentPrompt = null;
-                    logger.debug("IAM prompt to handle finished with result: " + result);
-
-                    // On preview mode we show informative alert dialogs
-                    if (inAppMessage.isPreview && result == OneSignal.PromptActionResult.LOCATION_PERMISSIONS_MISSING_MANIFEST)
-                        showAlertDialogMessage(inAppMessage, prompts);
-                    else
-                        showMultiplePrompts(inAppMessage, prompts);
-                }
-            });
-        } else {
-            logger.debug("No IAM prompt to handle, dismiss message: " + inAppMessage.messageId);
-            messageWasDismissed(inAppMessage);
-        }
-    }
-
-    private void showAlertDialogMessage(final OSInAppMessageInternal inAppMessage, final List<OSInAppMessagePrompt> prompts) {
-        final String messageTitle = OneSignal.appContext.getString(R.string.location_not_available_title);
-        final String message = OneSignal.appContext.getString(R.string.location_not_available_message);
-        new AlertDialog.Builder(OneSignal.getCurrentActivity())
-                .setTitle(messageTitle)
-                .setMessage(message)
-                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        showMultiplePrompts(inAppMessage, prompts);
-                    }
-                })
-                .show();
-    }
+    private void showAlertDialogMessage(final OSInAppMessageInternal inAppMessage, final List<OSInAppMessagePrompt> prompts) { }
 
     private void fireOutcomesForClick(String messageId, @NonNull final List<OSInAppMessageOutcome> outcomes) {
         OneSignal.getSessionManager().onDirectInfluenceFromIAMClick(messageId);
