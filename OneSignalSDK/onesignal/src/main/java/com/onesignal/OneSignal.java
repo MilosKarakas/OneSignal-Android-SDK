@@ -2292,23 +2292,7 @@ public class OneSignal {
     * @see OSNotificationWillShowInForegroundHandler
     */
    static boolean shouldFireForegroundHandlers(OSNotificationGenerationJob notificationJob) {
-      if (!isInForeground()) {
-         OneSignal.onesignalLog(LOG_LEVEL.INFO, "App is in background, show notification");
-         return false;
-      }
-
-      if (notificationWillShowInForegroundHandler == null) {
-         OneSignal.onesignalLog(LOG_LEVEL.INFO, "No NotificationWillShowInForegroundHandler setup, show notification");
-         return false;
-      }
-
-      // Notification is restored. Don't fire for restored notifications.
-      if (notificationJob.isRestoring()) {
-         OneSignal.onesignalLog(LOG_LEVEL.INFO, "Not firing notificationWillShowInForegroundHandler for restored notifications");
-         return false;
-      }
-
-      return true;
+     return false;
    }
 
    /**
@@ -2316,18 +2300,7 @@ public class OneSignal {
     * <br/><br/>
     * @see OSNotificationWillShowInForegroundHandler
     */
-   static void fireForegroundHandlers(OSNotificationController notificationController) {
-      OneSignal.onesignalLog(OneSignal.LOG_LEVEL.INFO, "Fire notificationWillShowInForegroundHandler");
-
-      OSNotificationReceivedEvent notificationReceivedEvent = notificationController.getNotificationReceivedEvent();
-      try {
-         OneSignal.notificationWillShowInForegroundHandler.notificationWillShowInForeground(notificationReceivedEvent);
-      } catch (Throwable t) {
-         OneSignal.onesignalLog(LOG_LEVEL.ERROR, "Exception thrown while notification was being processed for display by notificationWillShowInForegroundHandler, showing notification in foreground!");
-         notificationReceivedEvent.complete(notificationReceivedEvent.getNotification());
-         throw t;
-      }
-   }
+   static void fireForegroundHandlers(OSNotificationController notificationController) { }
 
    /**
     * Method called when opening a notification
